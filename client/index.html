@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="friendsApp">
+<head>
+	<title>Full Mean</title>
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+
+	<!-- Latest compiled and minified JavaScript -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.9/angular.min.js"></script>
+	<script type="text/javascript">
+		//your angular code here
+		//create our module
+		var friendsApp = angular.module('friendsApp', []);
+
+		//now lets create a controller with some hardcoded data
+		//pass the FriendFactory to the controller
+
+		friendsApp.controller('FriendsController', function($scope, FriendsFactory){
+			//call upon the index factory method the minute the controller is loaded 
+			//this line goes at the top of the controller callback because the minute the controller gets
+			//called upon we want to create the $scope.friends array
+			$scope.friends = [];
+
+			FriendsFactory.index(function(info){
+				$scope.friends = info;
+			});
+		
+			//modify the addFriend $scope method to call upon the FriendsFactory create method
+			$scope.addFriend = function(){
+				//console.log($scope.new_friend);
+				FriendsFactory.create($scope.new_friend, function(friends){
+					//the line below says: set our $scope.friends variable to whatever is returned from FriendFactory.create
+					$scope.friends = friends;
+					
+				});
+			$scope.new_friend = {};
+			}
+
+			$scope.removeFriend = function($index){
+				FriendsFactory.delete($index, function(data){
+					$scope.friends = data;
+				});
+			}
+		});
+
+		//create the FriendFactory
+		friendsApp.factory('FriendsFactory', function($http){
+			var factory = {};
+			var friends = [];
+			//RESTful syntax: index = get all of that object
+			factory.index = function(callback){
+				//where do we get acces to $http
+				$http.get('/friends').success(function(output){
+					friends = output;
+					// console.log(output);
+					callback(friends);
+				});
+				//return factory;
+			}
+			//note the use of callbacks
+			//RESTful syntax: create = add one to that object
+			factory.create = function(info, callback){
+				//console.log(info);
+				$http.post('/friends', info).success(function(output){
+					friends.push(output);
+					factory.index(callback);
+					// console.log(friends);
+					callback(friends);
+				});
+			}
+			factory.delete = function(index, callback){
+				$http.post('/delete/' + friends[index]._id).success(function(output){
+					factory.index(callback);
+					callback();
+				});
+			}
+			return factory;
+		});
+
+	</script>
+
+</head>
+<!-- everything in the body is going to use the friends controller (this gives us access to the friends controller $scope) -->
+<body ng-controller="FriendsController">
+	<div class="container">
+		<h1>Friends</h1>
+		<!-- <input type="text" ng-model="filter_name" placeholder='Filter'>
+		{{ filter_name }} -->
+		<ul>
+			<!-- here is where we are going to display friends -->
+			<li ng-repeat="friend in friends | filter: filter_name">
+				{{ friend.name }}, {{ friend.age }} <button type="submit" class="btn btn-danger btn-xs" ng-click="removeFriend($index)">Delete Friend</button>
+			</li>
+		</ul>
+		<h1>Add a Friend</h1>
+		<!-- objects and properties -->
+		<input type="text" ng-model="new_friend.name" placeholder="Name here">
+		<input type="text" ng-model="new_friend.age" placeholder="Age here">
+		<!-- addFriend() is a method we are going to make in the angular controller -->
+		<button type="submit" class="btn btn-info btn-sm" ng-click="addFriend()">Add Friend</button>
+	</div>
+</body>
+</html>
